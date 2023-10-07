@@ -1,0 +1,108 @@
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+/* In order to place the tracking correctly */
+canvas.drawing,
+canvas.drawingBuffer {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.button {
+  background-color: #4CAF50; /* Green */
+  border: none;
+  color: white;
+  padding: 15px 32px;
+  text-align: center;
+  text-decoration: none;
+  display: none;
+  font-size: 16px;
+}
+
+.button.stop {
+  position: absolute;
+  bottom: 20px;
+}
+
+.button.active {
+  display: inline-block;
+}
+
+.scanner {
+  display: none;
+  width: 100vw;
+  height: 100vw;
+  position:absolute;
+}
+
+.scanner.active {
+  display: block;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+}
+
+.title {
+  align-self: center;
+}
+
+.inputContainer {
+  display: flex;
+  justify-content: space-between;
+  min-height: 30px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.barcodeInput {
+  flex-basis: 50%;
+  flex-grow: 1;
+  min-width: 100px;
+}
+
+.scanButton {
+  flex-basis: 20%;
+  flex-grow: 1;
+}
+
+.insertButton {
+  flex-basis: 20%;
+  flex-grow: 1;
+}
+
+.fullwidth {
+  width: 100%;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+table,
+th,
+td {
+  border: 1px solid black;
+}
+
+.resultContainer {
+  padding-top: 1em;
+}
+
+ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+li {
+  font-size: 16px;
+  padding-left: 10px;
+  margin: 10px auto;
+  font-family: arial sans-serif;
+}
