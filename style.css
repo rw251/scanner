@@ -10,34 +10,30 @@ canvas.drawingBuffer {
   position: absolute;
   left: 0;
   top: 0;
+  width:100%;
 }
 
 /* Nicer buttons */
-.button {
+button {
   background-color: #4CAF50; /* Green */
   border: none;
   color: white;
   padding: 15px 32px;
   text-align: center;
   text-decoration: none;
-  display: none;
-  font-size: 16px;
-}
-
-.button.stop {
-  position: absolute;
-  bottom: 20px;
-}
-
-.button.active {
   display: inline-block;
+  font-size: 16px;
+  position: absolute;
+  bottom: 0px;
+  width:100%;
 }
 
 .scanner {
   display: none;
   width: 100vw;
-  height: 100vw;
+  max-height:50vh;
   position:absolute;
+  overflow: hidden;
 }
 
 .scanner.active {
@@ -49,7 +45,44 @@ canvas.drawingBuffer {
   flex-direction: column;
 }
 
+.scanner video  {
+  width:100%;
+}
+
 /* The list of books */
+#list {
+  position:absolute;
+  bottom:50px;
+  width:100%;
+  background: white;
+  height: 50vh;
+  overflow-y: auto;
+  border-top: 3px solid #555;
+}
+.flash {
+  position:absolute;
+  pointer-events:none;
+  height:100%;
+  width:100%;
+  left:0;
+  top:0;
+}
+.flash.match {
+  animation-name: flash;
+  animation-duration: 2000ms;
+  animation-iteration-count: 1;
+  animation-timing-function: ease;
+}
+
+@keyframes flash {
+    0% {
+        background-color: lightgreen;
+    }
+    100% {
+        background-color: inherit;
+    }
+}
+
 ul {
   list-style-type: none;
   margin: 0;
@@ -71,4 +104,13 @@ li {
 .author {
   pointer-events:none;
   color:#444444;
+}
+
+.loader {
+  position: absolute;
+  height: 50vh;
+  width: 100%;
+  text-align: center;
+  font-size: 32px;
+  line-height: 50vh;
 }

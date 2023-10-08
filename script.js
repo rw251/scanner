@@ -1,11 +1,42 @@
-const $start = document.getElementById('start');
-const $stop = document.getElementById('stop');
 const $scanner = document.querySelector('.scanner');
 const $list = document.getElementById('list');
+const $flash = document.querySelector('.flash');
+const $download = document.getElementById('download');
+
+$flash.addEventListener('animationend', () => {
+  $flash.classList.remove('match');
+});
+
+$download.addEventListener('click', () => {
+  var element = document.createElement('a');
+  const data =
+    'Title,Author,ISBN\n' +
+    Object.entries(list)
+      .map(([isbn, book]) => {
+        return `${book.title.replace(/,/g, ' ')},${
+          (book.author && book.author.replace(/,/g, ' ')) || 'Unknown'
+        },${isbn}`;
+      })
+      .join('\n');
+  element.setAttribute(
+    'href',
+    'data:text/plain;charset=utf-8,' + encodeURIComponent(data)
+  );
+  element.setAttribute(
+    'download',
+    `library-books-${Object.keys(list).length}.csv`
+  );
+
+  element.style.display = 'none';
+  document.body.appendChild(element);
+
+  element.click();
+
+  document.body.removeChild(element);
+});
 
 $list.addEventListener('click', (e) => {
   if (e.target && e.target.dataset && e.target.dataset.isbn) {
-    console.log(e.target.dataset.isbn);
     deleteBook(e.target.dataset.isbn);
   }
 });
@@ -15,26 +46,14 @@ function deleteBook(isbn) {
   displayList();
 }
 
-const currentScanList = {};
+let currentScanList = {};
 const list = JSON.parse(localStorage.getItem('list') || '{}');
 displayList();
-
-// startScanning();
-let isScanning = false;
-$start.addEventListener('click', (e) => {
-  if (isScanning) {
-    stopScanning();
-  } else {
-    startScanning();
-  }
-});
-
-$stop.addEventListener('click', (e) => {
-  stopScanning();
-});
+startScanning();
 
 function displayList() {
   $list.innerHTML = `<ul>${Object.entries(list)
+    .reverse()
     .map(
       ([isbn, book]) =>
         `<li data-isbn="${isbn}"><div class="title">${
@@ -65,11 +84,27 @@ function lookupISBN(isbn) {
     .then((x) => x.json())
     .then((x) => {
       if (x.book && x.book === true) return;
-      currentScanList[isbn] = x;
-      stopScanning();
-      list[isbn] = x;
+      currentScanList = {};
+      pauseScanning();
+      $flash.classList.add('match');
+      const { authors, number_of_pages, publish_date, title, weight } = x;
+      list[isbn] = {
+        authors,
+        number_of_pages,
+        publish_date,
+        title,
+        weight,
+      };
       displayList();
-      getAuthors(isbn);
+      if (list[isbn].authors) getAuthors(isbn);
+      else if (x.works) {
+        fetch(`https://openlibrary.org${x.works[0].key}.json`)
+          .then((x) => x.json())
+          .then((work) => {
+            if (work.authors) list[isbn].authors = [work.authors[0].author];
+            getAuthors(isbn);
+          });
+      }
     });
 }
 
@@ -82,18 +117,32 @@ function getAuthors(isbn) {
       displayList();
     });
 }
+let isPaused = false;
+function pauseScanning() {
+  isPaused = true;
+  clearBoxes();
+  setTimeout(() => {
+    isPaused = false;
+  }, 2000);
+}
 
 function stopScanning() {
-  $stop.classList.remove('active');
-  $start.classList.add('active');
   Quagga.stop();
   $scanner.classList.remove('active');
-  isScanning = false;
+}
+
+function clearBoxes() {
+  var drawingCtx = Quagga.canvas.ctx.overlay,
+    drawingCanvas = Quagga.canvas.dom.overlay;
+  drawingCtx.clearRect(
+    0,
+    0,
+    parseInt(drawingCanvas.getAttribute('width')),
+    parseInt(drawingCanvas.getAttribute('height'))
+  );
 }
 
 function startScanning() {
-  $stop.classList.add('active');
-  $start.classList.remove('active');
   Quagga.init(
     {
       inputStream: {
@@ -101,8 +150,8 @@ function startScanning() {
         type: 'LiveStream',
         target: document.querySelector('.scanner'),
         constraints: {
-          width: 480,
-          height: 480,
+          // width: screen.width - 20,
+          // height: (screen.height - 40)/2,
           facingMode: 'environment',
         },
       },
@@ -133,23 +182,25 @@ function startScanning() {
       console.log('Initialization finished. Ready to start');
       Quagga.start();
 
-      // Set flag to is running
-      isScanning = true;
       $scanner.classList.add('active');
+
+      $list.style.height = `${
+        Math.max(
+          document.documentElement.clientHeight,
+          window.innerHeight || 0
+        ) -
+        25 -
+        $scanner.offsetHeight
+      }px`;
     }
   );
   Quagga.onProcessed(function (result) {
-    var drawingCtx = Quagga.canvas.ctx.overlay,
-      drawingCanvas = Quagga.canvas.dom.overlay;
+    if (isPaused) return;
 
     if (result) {
+      var drawingCtx = Quagga.canvas.ctx.overlay;
       if (result.boxes) {
-        drawingCtx.clearRect(
-          0,
-          0,
-          parseInt(drawingCanvas.getAttribute('width')),
-          parseInt(drawingCanvas.getAttribute('height'))
-        );
+        clearBoxes();
         result.boxes
           .filter(function (box) {
             return box !== result.box;
