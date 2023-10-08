@@ -15,6 +15,7 @@ function deleteBook(isbn) {
   displayList();
 }
 
+const currentScanList = {};
 const list = JSON.parse(localStorage.getItem('list') || '{}');
 displayList();
 
@@ -34,19 +35,51 @@ $stop.addEventListener('click', (e) => {
 
 function displayList() {
   $list.innerHTML = `<ul>${Object.entries(list)
-    .map(([isbn, book]) => `<li data-isbn="${isbn}">${book.title}</li>`)
+    .map(
+      ([isbn, book]) =>
+        `<li data-isbn="${isbn}"><div class="title">${
+          book.title
+        }</div><div class="author">${book.author || 'Loading...'}</div></li>`
+    )
     .join('')}</ul>`;
   localStorage.setItem('list', JSON.stringify(list));
 }
 
+let scanFetches = 0;
+let fetchReturns = 0;
+
 function lookupISBN(isbn) {
-  list[isbn] = true;
+  currentScanList[isbn] = true;
+  scanFetches++;
   fetch(`https://openlibrary.org/isbn/${isbn}.json`)
+    .then((response) => {
+      if (!response.ok) {
+        return {
+          json: () => {
+            return { book: true };
+          },
+        };
+      }
+      return response;
+    })
     .then((x) => x.json())
     .then((x) => {
+      if (x.book && x.book === true) return;
+      currentScanList[isbn] = x;
+      stopScanning();
       list[isbn] = x;
       displayList();
-      console.log(x);
+      getAuthors(isbn);
+    });
+}
+
+function getAuthors(isbn) {
+  fetch(`https://openlibrary.org${list[isbn].authors[0].key}.json`)
+    .then((x) => x.json())
+    .then((x) => x.name || x.personal_name)
+    .then((name) => {
+      list[isbn].author = name;
+      displayList();
     });
 }
 
@@ -75,13 +108,6 @@ function startScanning() {
       },
       decoder: {
         readers: ['ean_reader'],
-        //   {
-        //     format: "ean_reader",
-        //     config: {
-        //       supplements: ["ean_5_reader", "ean_2_reader"],
-        //     },
-        //   },
-        // ],
         debug: {
           showCanvas: true,
           showPatches: true,
@@ -156,12 +182,27 @@ function startScanning() {
 
   Quagga.onDetected(function (result) {
     const isbn = result.codeResult.code;
-    if (list[isbn]) return;
-    lookupISBN(isbn);
-    stopScanning();
-    console.log(
-      'Barcode detected and processed : [' + result.codeResult.code + ']',
-      result
-    );
+    if (currentScanList[isbn]) return;
+
+    var countDecodedCodes = 0,
+      err = 0;
+    result.codeResult.decodedCodes.forEach(({ error }) => {
+      if (error != undefined) {
+        countDecodedCodes++;
+        err += parseFloat(error);
+      }
+    });
+    const avgError = err / countDecodedCodes;
+    if (avgError < 0.1) {
+      // correct code detected
+      lookupISBN(isbn);
+      console.log(
+        'Barcode detected and processed : [' + result.codeResult.code + ']',
+        result
+      );
+    } else {
+      // probably wrong code
+      console.log(isbn, 'ERROR', avgError);
+    }
   });
 }

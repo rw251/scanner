@@ -12,6 +12,7 @@ canvas.drawingBuffer {
   top: 0;
 }
 
+/* Nicer buttons */
 .button {
   background-color: #4CAF50; /* Green */
   border: none;
@@ -48,52 +49,7 @@ canvas.drawingBuffer {
   flex-direction: column;
 }
 
-.title {
-  align-self: center;
-}
-
-.inputContainer {
-  display: flex;
-  justify-content: space-between;
-  min-height: 30px;
-  width: 100%;
-  flex-wrap: wrap;
-}
-
-.barcodeInput {
-  flex-basis: 50%;
-  flex-grow: 1;
-  min-width: 100px;
-}
-
-.scanButton {
-  flex-basis: 20%;
-  flex-grow: 1;
-}
-
-.insertButton {
-  flex-basis: 20%;
-  flex-grow: 1;
-}
-
-.fullwidth {
-  width: 100%;
-}
-
-table {
-  border-collapse: collapse;
-}
-
-table,
-th,
-td {
-  border: 1px solid black;
-}
-
-.resultContainer {
-  padding-top: 1em;
-}
-
+/* The list of books */
 ul {
   list-style-type: none;
   margin: 0;
@@ -105,4 +61,14 @@ li {
   padding-left: 10px;
   margin: 10px auto;
   font-family: arial sans-serif;
+}
+
+.title {
+  pointer-events:none;
+  font-size:20px;
+}
+
+.author {
+  pointer-events:none;
+  color:#444444;
 }
