@@ -2,10 +2,21 @@ const $scanner = document.querySelector('.scanner');
 const $list = document.getElementById('list');
 const $flash = document.querySelector('.flash');
 const $download = document.getElementById('download');
+const $manualDiv = document.querySelector('.manual');
+const $manualButton = document.getElementById('manualGo');
+const $manualISBN = document.getElementById('manual');
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 let newOnes = {};
 let hasStarted = false;
+
+$manualButton.addEventListener('click', () => {
+  const isbn = $manualISBN.value.trim();
+  if (!isISBN(isbn)) alert('Not a valid ISBN');
+  else {
+    lookupISBN(isbn);
+  }
+});
 
 $flash.addEventListener('animationend', () => {
   $flash.classList.remove('match');
@@ -102,6 +113,7 @@ function addBook(isbn, book) {
   pauseScanning();
   beep();
   $flash.classList.add('match');
+  $manualISBN.value = '';
   list[isbn] = book;
   newOnes[isbn] = true;
   displayList();
@@ -228,14 +240,16 @@ function startScanning() {
 
       $scanner.classList.add('active');
 
-      $list.style.height = `${
+      const offset =
         Math.max(
           document.documentElement.clientHeight,
           window.innerHeight || 0
         ) -
         25 -
-        $scanner.offsetHeight
-      }px`;
+        $scanner.offsetHeight;
+      $manualDiv.style.bottom = `${offset + 54}px`;
+      $manualDiv.style.display = 'flex';
+      $list.style.height = `${offset}px`;
     }
   );
   Quagga.onProcessed(function (result) {

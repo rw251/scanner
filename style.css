@@ -10,12 +10,12 @@ canvas.drawingBuffer {
   position: absolute;
   left: 0;
   top: 0;
-  width:100%;
+  width: 100%;
 }
 
 /* Nicer buttons */
 button {
-  background-color: #4CAF50; /* Green */
+  background-color: #4caf50; /* Green */
   border: none;
   color: white;
   padding: 15px 32px;
@@ -25,14 +25,14 @@ button {
   font-size: 16px;
   position: absolute;
   bottom: 0px;
-  width:100%;
+  width: 100%;
 }
 
 .scanner {
   display: none;
   width: 100vw;
-  max-height:50vh;
-  position:absolute;
+  max-height: 50vh;
+  position: absolute;
   overflow: hidden;
 }
 
@@ -45,27 +45,27 @@ button {
   flex-direction: column;
 }
 
-.scanner video  {
-  width:100%;
+.scanner video {
+  width: 100%;
 }
 
 /* The list of books */
 #list {
-  position:absolute;
-  bottom:50px;
-  width:100%;
+  position: absolute;
+  bottom: 50px;
+  width: 100%;
   background: white;
   height: 50vh;
   overflow-y: auto;
   border-top: 3px solid #555;
 }
 .flash {
-  position:absolute;
-  pointer-events:none;
-  height:100%;
-  width:100%;
-  left:0;
-  top:0;
+  position: absolute;
+  pointer-events: none;
+  height: 100%;
+  width: 100%;
+  left: 0;
+  top: 0;
 }
 .flash.match {
   animation-name: flash;
@@ -75,12 +75,12 @@ button {
 }
 
 @keyframes flash {
-    0% {
-        background-color: lightgreen;
-    }
-    100% {
-        background-color: inherit;
-    }
+  0% {
+    background-color: lightgreen;
+  }
+  100% {
+    background-color: inherit;
+  }
 }
 
 ul {
@@ -100,8 +100,8 @@ li.new {
 }
 
 .title {
-  pointer-events:none;
-  font-size:20px;
+  pointer-events: none;
+  font-size: 20px;
 }
 
 li.new .title {
@@ -109,8 +109,8 @@ li.new .title {
 }
 
 .author {
-  pointer-events:none;
-  color:#444444;
+  pointer-events: none;
+  color: #444444;
 }
 
 .loader {
@@ -120,4 +120,19 @@ li.new .title {
   text-align: center;
   font-size: 32px;
   line-height: 50vh;
+}
+
+.manual {
+  position: absolute;
+  z-index: 1;
+  text-align: center;
+  width: 100%;
+  display: none;
+  justify-content: center;
+}
+
+.manual input {
+  padding: 8px 12px;
+  border-radius: 0px;
+  border: 0;
 }

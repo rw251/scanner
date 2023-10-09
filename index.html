@@ -6,11 +6,15 @@
     <title>Book scanner</title>
 
     <!-- The website stylesheet -->
-    <link rel="stylesheet" href="/style.css?v=1" />
+    <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
     <div class="app">
       <div class="loader">Waiting for camera...</div>
+      <div class="manual">
+        <input type="text" id="manual" placeholder="Enter manual ISBN" />
+        <input type="button" id="manualGo" value="Add" />
+      </div>
       <div class="scanner"></div>
       <div id="list"></div>
       <button id="download">Download</button>
@@ -23,6 +27,6 @@
       crossorigin="anonymous"
       referrerpolicy="no-referrer"
     ></script>
-    <script src="script.js?v=1"></script>
+    <script src="script.js"></script>
   </body>
 </html>
