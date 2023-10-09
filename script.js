@@ -2,6 +2,9 @@ const $scanner = document.querySelector('.scanner');
 const $list = document.getElementById('list');
 const $flash = document.querySelector('.flash');
 const $download = document.getElementById('download');
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+let newOnes = {};
 
 $flash.addEventListener('animationend', () => {
   $flash.classList.remove('match');
@@ -46,6 +49,24 @@ function deleteBook(isbn) {
   displayList();
 }
 
+function beep() {
+  var oscillator = audioCtx.createOscillator();
+  var gainNode = audioCtx.createGain();
+
+  oscillator.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+
+  gainNode.gain.value = 0.5;
+  oscillator.frequency.value = 1650;
+  oscillator.type = 'square';
+
+  oscillator.start();
+
+  setTimeout(function () {
+    oscillator.stop();
+  }, 75);
+}
+
 let currentScanList = {};
 const list = JSON.parse(localStorage.getItem('list') || '{}');
 displayList();
@@ -56,9 +77,12 @@ function displayList() {
     .reverse()
     .map(
       ([isbn, book]) =>
-        `<li data-isbn="${isbn}"><div class="title">${
-          book.title
-        }</div><div class="author">${book.author || 'Loading...'}</div></li>`
+        `<li data-isbn="${isbn}" class="${
+          newOnes[isbn] ? 'new' : ''
+        }"><div class="title">${book.title}</div><div class="author">${
+          (book.authors && book.authors.length && book.authors[0].name) ||
+          'Unknown'
+        }</div></li>`
     )
     .join('')}</ul>`;
   localStorage.setItem('list', JSON.stringify(list));
@@ -70,8 +94,11 @@ let fetchReturns = 0;
 function lookupISBN(isbn) {
   currentScanList[isbn] = true;
   scanFetches++;
-  fetch(`https://openlibrary.org/isbn/${isbn}.json`)
+  fetch(
+    `https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`
+  )
     .then((response) => {
+      console.log(response);
       if (!response.ok) {
         return {
           json: () => {
@@ -84,45 +111,56 @@ function lookupISBN(isbn) {
     .then((x) => x.json())
     .then((x) => {
       if (x.book && x.book === true) return;
-      currentScanList = {};
-      pauseScanning();
-      $flash.classList.add('match');
-      const { authors, number_of_pages, publish_date, title, weight } = x;
-      list[isbn] = {
-        authors,
-        number_of_pages,
-        publish_date,
-        title,
-        weight,
-      };
-      displayList();
-      if (list[isbn].authors) getAuthors(isbn);
-      else if (x.works) {
-        fetch(`https://openlibrary.org${x.works[0].key}.json`)
-          .then((x) => x.json())
-          .then((work) => {
-            if (work.authors) list[isbn].authors = [work.authors[0].author];
-            getAuthors(isbn);
-          });
+      const books = Object.values(x);
+      if (books.length === 0) {
+        console.log(`${timestamp()}Can't find ${isbn}`);
+      } else {
+        currentScanList = {};
+        pauseScanning();
+        beep();
+        $flash.classList.add('match');
+        const {
+          authors,
+          pagination,
+          number_of_pages,
+          publish_date,
+          title,
+          weight,
+        } = books[0];
+        list[isbn] = {
+          authors,
+          number_of_pages: number_of_pages || pagination,
+          publish_date,
+          title,
+          weight,
+        };
+        newOnes[isbn] = true;
+        displayList();
       }
+    })
+    .catch((err) => {
+      console.log(`${timestamp}Response error`, err);
     });
 }
 
-function getAuthors(isbn) {
-  fetch(`https://openlibrary.org${list[isbn].authors[0].key}.json`)
-    .then((x) => x.json())
-    .then((x) => x.name || x.personal_name)
-    .then((name) => {
-      list[isbn].author = name;
-      displayList();
-    });
-}
+// function getAuthors(isbn) {
+//   fetch(`https://openlibrary.org${list[isbn].authors[0].key}.json`)
+//     .then((x) => x.json())
+//     .then((x) => x.name || x.personal_name)
+//     .then((name) => {
+//       list[isbn].author = name;
+//       displayList();
+//     });
+// }
 let isPaused = false;
 function pauseScanning() {
+  console.log(`${timestamp()}Paused`);
   isPaused = true;
   clearBoxes();
   setTimeout(() => {
+    console.log(`${timestamp()}Resumed`);
     isPaused = false;
+    newOnes = {};
   }, 2000);
 }
 
@@ -232,8 +270,12 @@ function startScanning() {
   });
 
   Quagga.onDetected(function (result) {
+    console.log(`${timestamp()}Detected ${result.codeResult.code}`);
     const isbn = result.codeResult.code;
-    if (currentScanList[isbn]) return;
+    if (currentScanList[isbn] || isPaused) {
+      console.log(`${timestamp()}Already looking up ${result.codeResult.code}`);
+      return;
+    }
 
     var countDecodedCodes = 0,
       err = 0;
@@ -244,16 +286,19 @@ function startScanning() {
       }
     });
     const avgError = err / countDecodedCodes;
-    if (avgError < 0.1) {
+    if (avgError < 0.15) {
       // correct code detected
       lookupISBN(isbn);
-      console.log(
-        'Barcode detected and processed : [' + result.codeResult.code + ']',
-        result
-      );
+      console.log(`${timestamp()}Processed ${isbn}`, result);
     } else {
       // probably wrong code
-      console.log(isbn, 'ERROR', avgError);
+      console.log(
+        `${timestamp()}Not enough confidence for ${isbn} (error = ${avgError})`
+      );
     }
   });
+}
+
+function timestamp() {
+  return `${new Date().toISOString()}: `;
 }

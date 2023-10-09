@@ -91,14 +91,21 @@ ul {
 
 li {
   font-size: 16px;
-  padding-left: 10px;
-  margin: 10px auto;
+  padding: 10px;
   font-family: arial sans-serif;
+}
+
+li.new {
+  background: yellow;
 }
 
 .title {
   pointer-events:none;
   font-size:20px;
+}
+
+li.new .title {
+  font-weight: bold;
 }
 
 .author {
