@@ -5,6 +5,7 @@ const $download = document.getElementById('download');
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 let newOnes = {};
+let hasStarted = false;
 
 $flash.addEventListener('animationend', () => {
   $flash.classList.remove('match');
@@ -88,17 +89,29 @@ function displayList() {
   localStorage.setItem('list', JSON.stringify(list));
 }
 
-let scanFetches = 0;
-let fetchReturns = 0;
+function isISBN(isbn) {
+  const isbnString = '' + isbn;
+  if (isbn.length === 10) return true; //isbn-10
+  if (isbn.match(/^97[89][0-9]{10}$/)) return true; //isbn-13
+  return false;
+}
+
+function addBook(isbn, book) {
+  currentScanList = {};
+  hasStarted = false;
+  pauseScanning();
+  beep();
+  $flash.classList.add('match');
+  list[isbn] = book;
+  newOnes[isbn] = true;
+  displayList();
+}
 
 function lookupISBN(isbn) {
-  currentScanList[isbn] = true;
-  scanFetches++;
   fetch(
     `https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`
   )
     .then((response) => {
-      console.log(response);
       if (!response.ok) {
         return {
           json: () => {
@@ -113,12 +126,31 @@ function lookupISBN(isbn) {
       if (x.book && x.book === true) return;
       const books = Object.values(x);
       if (books.length === 0) {
-        console.log(`${timestamp()}Can't find ${isbn}`);
+        console.log(`${timestamp()}Can't find ${isbn} trying googlebooks api`);
+        fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`)
+          .then((x) => x.json())
+          .then((x) => {
+            if (x.totalItems === 0) {
+              console.log(
+                `${timestamp()}Can't find ${isbn} on googlebooks api`
+              );
+            } else {
+              const { title, authors, publishedDate, pageCount } =
+                x.items[0].volumeInfo;
+              const book = {
+                authors: authors.map((x) => {
+                  return { name: x };
+                }),
+                number_of_pages: pageCount,
+                publish_date: publishedDate,
+                title,
+              };
+              addBook(isbn, book);
+            }
+          });
+        currentScanList[isbn].notFound = true;
+        console.log(currentScanList);
       } else {
-        currentScanList = {};
-        pauseScanning();
-        beep();
-        $flash.classList.add('match');
         const {
           authors,
           pagination,
@@ -127,15 +159,14 @@ function lookupISBN(isbn) {
           title,
           weight,
         } = books[0];
-        list[isbn] = {
+        const book = {
           authors,
           number_of_pages: number_of_pages || pagination,
           publish_date,
           title,
           weight,
         };
-        newOnes[isbn] = true;
-        displayList();
+        addBook(isbn, book);
       }
     })
     .catch((err) => {
@@ -143,15 +174,6 @@ function lookupISBN(isbn) {
     });
 }
 
-// function getAuthors(isbn) {
-//   fetch(`https://openlibrary.org${list[isbn].authors[0].key}.json`)
-//     .then((x) => x.json())
-//     .then((x) => x.name || x.personal_name)
-//     .then((name) => {
-//       list[isbn].author = name;
-//       displayList();
-//     });
-// }
 let isPaused = false;
 function pauseScanning() {
   console.log(`${timestamp()}Paused`);
@@ -186,29 +208,13 @@ function startScanning() {
       inputStream: {
         name: 'Live',
         type: 'LiveStream',
-        target: document.querySelector('.scanner'),
+        target: $scanner,
         constraints: {
-          // width: screen.width - 20,
-          // height: (screen.height - 40)/2,
           facingMode: 'environment',
         },
       },
       decoder: {
         readers: ['ean_reader'],
-        debug: {
-          showCanvas: true,
-          showPatches: true,
-          showFoundPatches: true,
-          showSkeleton: true,
-          showLabels: true,
-          showPatchLabels: true,
-          showRemainingPatchLabels: true,
-          boxFromPatches: {
-            showTransformed: true,
-            showTransformedBox: true,
-            showBB: true,
-          },
-        },
       },
     },
     function (err) {
@@ -272,11 +278,29 @@ function startScanning() {
   Quagga.onDetected(function (result) {
     console.log(`${timestamp()}Detected ${result.codeResult.code}`);
     const isbn = result.codeResult.code;
-    if (currentScanList[isbn] || isPaused) {
-      console.log(`${timestamp()}Already looking up ${result.codeResult.code}`);
+    if (!isISBN(isbn)) {
+      console.log(`${timestamp()}Probably not ISBN ${isbn}`);
       return;
     }
-
+    if (currentScanList[isbn]) {
+      currentScanList[isbn].count += 1;
+      console.log(`${timestamp()}Already looking up ${result.codeResult.code}`);
+      return;
+    } else if (isPaused) {
+      console.log(
+        `${timestamp()}Paused so not looking up ${result.codeResult.code}`
+      );
+      return;
+    }
+    if (!hasStarted) {
+      setTimeout(() => {
+        if (hasStarted) {
+          console.log('CANT FIND', currentScanList);
+        }
+      }, 2500);
+    }
+    hasStarted = true;
+    currentScanList[isbn] = { count: 1 };
     var countDecodedCodes = 0,
       err = 0;
     result.codeResult.decodedCodes.forEach(({ error }) => {
